@@ -1,0 +1,144 @@
+
+/* ЗАДАНИЕ: для одного из запросов, созданных в пункте 6, провести оптимизацию. 
+В качестве отчета приложить планы выполнения запроса, ваш анализ и показать действия, 
+которые улучшили эффективность запроса. */
+
+
+ПРИМЕЧАНИЕ: для чистоты эксперимента перед каждым контрольным запуском команды EXPLAIN ANALYZE очищался кэш.
+
+
+1. Запрос, который выбран для оптимизации. Описание: запрос возвращает имена и фамилии актёров,
+снимавшихся/снимающихся в жанре "Драма", а также лучшие фильмы с их участием (необязательно в этом же жанре).
+
+SELECT
+   actors.first_name,
+   actors.last_name,
+   films.title AS best_film
+FROM films_genres
+   INNER JOIN genres
+      ON films_genres.genre_id = genres.id
+   INNER JOIN filmography
+      ON films_genres.film_id = filmography.film_id
+   INNER JOIN actors
+      ON filmography.actor_id = actors.id
+   INNER JOIN films
+      ON actors.best_film_id = films.id
+WHERE genres.name = 'drama'
+ORDER BY actors.first_name;
+
+
+2. Первое построение плана выполнения запроса. Фактическое затраченное время – 0.843 ms.
+
+QUERY PLAN
+Sort  (cost=25.31..25.32 rows=1 width=33) (actual time=0.811..0.813 rows=10 loops=1)
+  Sort Key: actors.first_name
+  Sort Method: quicksort  Memory: 25kB
+  ->  Nested Loop  (cost=21.73..25.30 rows=1 width=33) (actual time=0.726..0.783 rows=10 loops=1)
+        ->  Nested Loop  (cost=21.58..24.90 rows=1 width=17) (actual time=0.546..0.585 rows=10 loops=1)
+              ->  Nested Loop  (cost=21.44..24.61 rows=1 width=4) (actual time=0.541..0.568 rows=10 loops=1)
+                    ->  Hash Join  (cost=21.30..23.56 rows=1 width=4) (actual time=0.533..0.542 rows=7 loops=1)
+                          Hash Cond: (films_genres.genre_id = genres.id)
+                          ->  Seq Scan on films_genres  (cost=0.00..2.00 rows=100 width=8) (actual time=0.290..0.296 rows=100 loops=1)
+                          ->  Hash  (cost=21.25..21.25 rows=4 width=4) (actual time=0.218..0.218 rows=1 loops=1)
+                                Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                ->  Seq Scan on genres  (cost=0.00..21.25 rows=4 width=4) (actual time=0.213..0.214 rows=1 loops=1)
+                                      Filter: ((name)::text = 'drama'::text)
+                                      Rows Removed by Filter: 18
+                    ->  Index Only Scan using filmography_pkey on filmography  (cost=0.14..1.03 rows=2 width=8) (actual time=0.003..0.003 rows=1 loops=7)
+                          Index Cond: (film_id = films_genres.film_id)
+                          Heap Fetches: 10
+              ->  Index Scan using actors_pkey on actors  (cost=0.14..0.28 rows=1 width=21) (actual time=0.001..0.001 rows=1 loops=10)
+                    Index Cond: (id = filmography.actor_id)
+        ->  Index Scan using films_pkey on films  (cost=0.14..0.40 rows=1 width=24) (actual time=0.019..0.019 rows=1 loops=10)
+              Index Cond: (id = actors.best_film_id)
+Planning Time: 5.444 ms
+Execution Time: 0.843 ms
+
+
+3. Оптимизация, шаг 1 – переработка структуры запроса. Добавлено общее табличное выражение:
+
+WITH films_genre_drama AS (
+   SELECT film_id 
+   FROM films_genres
+   WHERE genre_id = 9
+)
+SELECT
+   actors.first_name,
+   actors.last_name,
+   films.title AS best_film
+FROM films_genre_drama
+   INNER JOIN filmography
+      ON films_genre_drama.film_id = filmography.film_id
+   INNER JOIN actors
+      ON filmography.actor_id = actors.id
+   INNER JOIN films
+      ON actors.best_film_id = films.id
+ORDER BY actors.first_name;
+
+
+4. Повторное построение плана выполнения запроса. Фактическое затраченное сократилось до 0.654 ms.
+
+QUERY PLAN
+Sort  (cost=11.38..11.41 rows=10 width=33) (actual time=0.617..0.619 rows=10 loops=1)
+  Sort Key: actors.first_name
+  Sort Method: quicksort  Memory: 25kB
+  ->  Nested Loop  (cost=4.88..11.22 rows=10 width=33) (actual time=0.564..0.601 rows=10 loops=1)
+        ->  Hash Join  (cost=4.74..7.21 rows=10 width=17) (actual time=0.390..0.407 rows=10 loops=1)
+              Hash Cond: (actors.id = filmography.actor_id)
+              ->  Seq Scan on actors  (cost=0.00..2.00 rows=100 width=21) (actual time=0.005..0.011 rows=100 loops=1)
+              ->  Hash  (cost=4.61..4.61 rows=10 width=4) (actual time=0.356..0.357 rows=10 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    ->  Hash Join  (cost=2.34..4.61 rows=10 width=4) (actual time=0.343..0.355 rows=10 loops=1)
+                          Hash Cond: (filmography.film_id = films_genres.film_id)
+                          ->  Seq Scan on filmography  (cost=0.00..2.00 rows=100 width=8) (actual time=0.003..0.008 rows=100 loops=1)
+                          ->  Hash  (cost=2.25..2.25 rows=7 width=4) (actual time=0.335..0.335 rows=7 loops=1)
+                                Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                ->  Seq Scan on films_genres  (cost=0.00..2.25 rows=7 width=4) (actual time=0.328..0.331 rows=7 loops=1)
+                                      Filter: (genre_id = 9)
+                                      Rows Removed by Filter: 93
+        ->  Index Scan using films_pkey on films  (cost=0.14..0.40 rows=1 width=24) (actual time=0.019..0.019 rows=1 loops=10)
+              Index Cond: (id = actors.best_film_id)
+Planning Time: 2.425 ms
+Execution Time: 0.654 ms
+
+
+5. Оптимизация, шаг 2 – настройка индексов для таблиц actors (на данный момент 
+для этой таблицы выполняется последовательное сканирование) и filmography, а также 
+отключение последовательного сканирования явным образом:
+
+• Убеждаемся в отсутствии нужных индексов:
+SELECT indexname FROM pg_indexes WHERE tablename = 'actors';
+SELECT indexname FROM pg_indexes WHERE tablename = 'filmography';
+
+• Создаем индексы:
+CREATE INDEX actors_last_name_idx ON actors (last_name);
+CREATE INDEX filmography_actor_id_fk ON filmography (actor_id);
+
+• Принудительно отключаем последовательное сканирование:
+SET enable_seqscan TO OFF;
+
+
+6. Повторное построение плана выполнения запроса. Фактическое затраченное сократилось до 0.332 ms.
+
+QUERY PLAN
+Sort  (cost=29.94..29.97 rows=10 width=33) (actual time=0.300..0.302 rows=10 loops=1)
+  Sort Key: actors.first_name
+  Sort Method: quicksort  Memory: 25kB
+  ->  Nested Loop  (cost=9.48..29.77 rows=10 width=33) (actual time=0.225..0.283 rows=10 loops=1)
+        ->  Nested Loop  (cost=9.34..25.77 rows=10 width=17) (actual time=0.040..0.080 rows=10 loops=1)
+              ->  Hash Join  (cost=9.19..22.97 rows=10 width=4) (actual time=0.037..0.063 rows=10 loops=1)
+                    Hash Cond: (filmography.film_id = films_genres.film_id)
+                    ->  Index Only Scan using filmography_pkey on filmography  (cost=0.14..13.64 rows=100 width=8) (actual time=0.014..0.032 rows=100 loops=1)
+                          Heap Fetches: 100
+                    ->  Hash  (cost=8.96..8.96 rows=7 width=4) (actual time=0.007..0.007 rows=7 loops=1)
+                          Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                          ->  Index Only Scan using films_genres_pkey on films_genres  (cost=0.14..8.96 rows=7 width=4) (actual time=0.004..0.005 rows=7 loops=1)
+                                Index Cond: (genre_id = 9)
+                                Heap Fetches: 0
+              ->  Index Scan using actors_pkey on actors  (cost=0.14..0.28 rows=1 width=21) (actual time=0.001..0.001 rows=1 loops=10)
+                    Index Cond: (id = filmography.actor_id)
+        ->  Index Scan using films_pkey on films  (cost=0.14..0.40 rows=1 width=24) (actual time=0.020..0.020 rows=1 loops=10)
+              Index Cond: (id = actors.best_film_id)
+Planning Time: 15.261 ms
+Execution Time: 0.332 ms
+

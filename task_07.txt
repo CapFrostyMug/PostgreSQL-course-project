@@ -1,0 +1,34 @@
+
+/* ЗАДАНИЕ: создать два представления, в основе которых лежат сложные запросы. */
+
+
+1. Представление возвращает список фильмов, которые чаще всего добавляют в избранное. 
+В результат запроса попадают название фильма и то, сколько раз его добавили в избранное:
+
+CREATE OR REPLACE VIEW movies_most_added_to_favorites AS
+   SELECT
+      films.id,
+      films.title,
+      COUNT(films_watched.film_id) AS test
+   FROM films_watched 
+      INNER JOIN films
+         ON films_watched.film_id = films.id
+   WHERE films_watched.is_favorite = '1' 
+   GROUP BY (films.id, films.title, films_watched.film_id)
+   HAVING COUNT(films_watched.film_id) >= 3
+   ORDER BY test DESC;
+
+
+2. Представление возвращает среднюю оценку, которую поставили пользователи, фильмам в жанре 
+"Мюзикл" за последние два года:
+
+CREATE OR REPLACE VIEW AVG_score_genre_musical AS
+   SELECT
+      ROUND(AVG(score)::numeric, 2) AS AVG_score_genre_musical
+   FROM films_genres
+      INNER JOIN genres
+         ON films_genres.genre_id = genres.id
+      INNER JOIN scores
+         ON films_genres.film_id = scores.film_id
+   WHERE genres.id = 16 AND (created_at > (current_timestamp - interval '2 year'));
+

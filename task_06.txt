@@ -1,0 +1,47 @@
+
+/* ЗАДАНИЕ: создать два сложных запроса с использованием объединения JOIN 
+и без использования подзапросов. */
+
+
+1. Запрос возвращает названия стран (если такие страны есть), снявших пять фильмов 
+с самым большим рейтингом. Помимо названия страны в отчет попадают название фильма, 
+год его выхода и общая оценка:
+
+WITH top_5_films AS (
+   SELECT id, title, year, score 
+   FROM films 
+   ORDER BY score DESC 
+   LIMIT 5
+)
+SELECT
+   countries.name AS country,
+   top_5_films.title AS title_film,
+   year,
+   top_5_films.score
+FROM top_5_films
+   INNER JOIN films_countries
+      ON top_5_films.id = films_countries.film_id
+   INNER JOIN countries
+      ON films_countries.country_id = countries.id
+ORDER BY score DESC;
+
+
+2. Запрос возвращает имена и фамилии актёров, снимавшихся/снимающихся в жанре "Драма", 
+а также лучшие фильмы с их участием (необязательно в этом же жанре):
+
+SELECT
+   actors.first_name,
+   actors.last_name,
+   films.title AS best_film
+FROM films_genres
+   INNER JOIN genres
+      ON films_genres.genre_id = genres.id
+   INNER JOIN filmography
+      ON films_genres.film_id = filmography.film_id
+   INNER JOIN actors
+      ON filmography.actor_id = actors.id
+   INNER JOIN films
+      ON actors.best_film_id = films.id
+WHERE genres.name = 'drama'
+ORDER BY actors.first_name;
+

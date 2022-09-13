@@ -1,0 +1,38 @@
+
+/* ЗАДАНИЕ: создать пользовательскую функцию. */
+
+
+1. Функция возвращает основные жанры для некоего актёра, то есть в каких жанрах он 
+снимался/снимается чаще всего; в выборку попадают те жанры, в которых актёр снимался 
+два и более раз. В качестве аргументов функция принимает имя и фамилию актёра (через запятую):
+
+CREATE OR REPLACE FUNCTION main_genres_for_actor(first_n VARCHAR, last_n VARCHAR)
+RETURNS TABLE(
+   first_name VARCHAR(50),
+   last_name VARCHAR(50),
+   genre VARCHAR(20),
+   count BIGINT
+)
+AS
+$$
+   SELECT
+      first_name,
+      last_name,
+      genres.name,
+      COUNT(genres.id)
+   FROM actors
+      INNER JOIN filmography
+         ON actors.id = filmography.actor_id
+      INNER JOIN films_genres
+         ON filmography.film_id = films_genres.film_id
+      INNER JOIN genres
+         ON films_genres.genre_id = genres.id
+   WHERE actors.first_name = first_n AND actors.last_name = last_n
+   GROUP BY (first_name, last_name, genres.name)
+   HAVING COUNT(genres.id) >= 2;
+$$
+LANGUAGE SQL;
+
+
+SELECT * FROM main_genres_for_actor('Nevada', 'Aguilar');
+
