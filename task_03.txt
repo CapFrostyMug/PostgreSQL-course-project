@@ -1,0 +1,129 @@
+
+/* ЗАДАНИЕ: создать внешние ключи, если они не были созданы на шаге 1 в командах создания таблиц. */
+
+
+=== users ===
+
+ALTER TABLE users
+ADD CONSTRAINT users_main_photo_id_fk
+FOREIGN KEY (main_photo_id)
+REFERENCES profiles_photo (id)
+ON DELETE CASCADE;
+
+
+=== profiles_photo ===
+
+ALTER TABLE profiles_photo
+ADD CONSTRAINT profiles_photo_owner_id_fk
+FOREIGN KEY (owner_id)
+REFERENCES users (id)
+ON DELETE CASCADE;
+
+
+=== films ===
+
+ALTER TABLE films
+ADD CONSTRAINT films_director_id_fk
+FOREIGN KEY (director_id)
+REFERENCES directors (id)
+ON DELETE CASCADE;
+
+
+=== films_genres ===
+
+ALTER TABLE films_genres
+ADD CONSTRAINT films_genres_film_id_fk
+FOREIGN KEY (film_id)
+REFERENCES films (id)
+ON DELETE CASCADE;
+
+ALTER TABLE films_genres
+ADD CONSTRAINT films_genres_genre_id_fk
+FOREIGN KEY (genre_id)
+REFERENCES genres (id)
+ON DELETE CASCADE;
+
+
+=== films_countries ===
+
+ALTER TABLE films_countries
+ADD CONSTRAINT films_countries_film_id_fk
+FOREIGN KEY (film_id)
+REFERENCES films (id)
+ON DELETE CASCADE;
+
+ALTER TABLE films_countries
+ADD CONSTRAINT films_countries_country_id_fk
+FOREIGN KEY (country_id)
+REFERENCES countries (id)
+ON DELETE CASCADE;
+
+
+=== shots ===
+
+ALTER TABLE shots
+ADD CONSTRAINT shots_film_id_fk
+FOREIGN KEY (film_id)
+REFERENCES films (id)
+ON DELETE CASCADE;
+
+
+=== actors ===
+
+ALTER TABLE actors
+ADD CONSTRAINT actors_country_id_of_birth_fk
+FOREIGN KEY (country_id_of_birth)
+REFERENCES countries (id)
+ON DELETE CASCADE;
+
+ALTER TABLE actors
+ADD CONSTRAINT actors_best_film_id_fk
+FOREIGN KEY (best_film_id)
+REFERENCES films (id)
+ON DELETE CASCADE;
+
+
+=== filmography ===
+
+ALTER TABLE filmography
+ADD CONSTRAINT filmography_actor_id_fk
+FOREIGN KEY (actor_id)
+REFERENCES actors (id)
+ON DELETE CASCADE;
+
+ALTER TABLE filmography
+ADD CONSTRAINT filmography_film_id_fk
+FOREIGN KEY (film_id)
+REFERENCES films (id)
+ON DELETE CASCADE;
+
+
+=== films_watched ===
+
+ALTER TABLE films_watched
+ADD CONSTRAINT films_watched_user_id_fk
+FOREIGN KEY (user_id)
+REFERENCES users (id)
+ON DELETE CASCADE;
+
+ALTER TABLE films_watched
+ADD CONSTRAINT films_watched_film_id_fk
+FOREIGN KEY (film_id)
+REFERENCES films (id)
+ON DELETE CASCADE;
+
+
+=== scores ===
+
+ALTER TABLE scores
+ADD CONSTRAINT scores_user_id_fk
+FOREIGN KEY (user_id)
+REFERENCES users (id)
+ON DELETE CASCADE;
+
+ALTER TABLE scores
+ADD CONSTRAINT scores_film_id_fk
+FOREIGN KEY (film_id)
+REFERENCES films (id)
+ON DELETE CASCADE;
+

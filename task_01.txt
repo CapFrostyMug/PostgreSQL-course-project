@@ -1,0 +1,113 @@
+
+/* ЗАДАНИЕ: проанализировать бизнес-логику приложения и создать структуру 
+базы данных, которая может использоваться для хранения данных этого приложения. 
+В базе данных должно быть минимум десять таблиц. Если таблиц получается более двадцати, 
+то рекомендуется ограничиться частью функционала приложения и не превышать это количество. */
+
+
+CREATE TABLE users (
+   id SERIAL PRIMARY KEY,
+   first_name VARCHAR(50) NOT NULL,
+   last_name VARCHAR(50) NOT NULL,
+   email VARCHAR(120) NOT NULL UNIQUE,
+   main_photo_id INT,
+   created_at TIMESTAMP
+);
+
+
+CREATE TABLE profiles_photo (
+   id SERIAL PRIMARY KEY,
+   url VARCHAR(250) NOT NULL UNIQUE,
+   owner_id INT NOT NULL,
+   size INT NOT NULL,
+   uploaded_at TIMESTAMP
+);
+
+
+CREATE TABLE films (
+   id SERIAL PRIMARY KEY,
+   title VARCHAR(45) NOT NULL,
+   year INT,
+   director_id INT NOT NULL,
+   description TEXT NOT NULL,
+   trailer VARCHAR(250) UNIQUE,
+   score REAL
+);
+
+
+CREATE TABLE genres (
+   id SERIAL PRIMARY KEY,
+   name VARCHAR(20) NOT NULL UNIQUE
+);
+
+
+CREATE TABLE films_genres (
+   film_id INT NOT NULL,
+   genre_id INT NOT NULL,
+   PRIMARY KEY (film_id, genre_id)
+);
+
+
+CREATE TABLE countries (
+   id SERIAL PRIMARY KEY,
+   name VARCHAR(40) NOT NULL UNIQUE
+);
+
+
+CREATE TABLE films_countries (
+   film_id INT NOT NULL,
+   country_id INT NOT NULL,
+   PRIMARY KEY (film_id, country_id)
+);
+
+
+CREATE TABLE shots (
+   id SERIAL PRIMARY KEY,
+   url VARCHAR(250) NOT NULL UNIQUE,
+   film_id INT NOT NULL,
+   size INT NOT NULL,
+   uploaded_at TIMESTAMP
+);
+
+
+CREATE TABLE actors (
+   id SERIAL PRIMARY KEY,
+   first_name VARCHAR(50) NOT NULL,
+   last_name VARCHAR(50) NOT NULL,
+   birthday DATE NOT NULL,
+   country_id_of_birth INT NOT NULL,
+   best_film_id INT
+);
+
+
+CREATE TABLE directors (
+   id SERIAL PRIMARY KEY,
+   first_name VARCHAR(50) NOT NULL,
+   last_name VARCHAR(50) NOT NULL
+);
+
+
+CREATE TABLE filmography (
+   actor_id INT NOT NULL,
+   film_id INT NOT NULL,
+   PRIMARY KEY (actor_id, film_id)
+);
+
+
+CREATE TABLE films_watched (
+   user_id INT NOT NULL,
+   film_id INT NOT NULL,
+   is_favorite BOOLEAN NOT NULL,
+   viewed_at DATE,
+   PRIMARY KEY (user_id, film_id)
+);
+
+
+CREATE TABLE scores (
+   user_id INT NOT NULL,
+   film_id INT NOT NULL,
+   score REAL NOT NULL,
+   created_at TIMESTAMP,
+   PRIMARY KEY (user_id, film_id)
+);
+

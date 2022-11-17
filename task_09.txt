@@ -1,0 +1,26 @@
+
+/* ЗАДАНИЕ: создать триггер. */
+
+
+1. Триггер срабатывает при создании (вставке) нового пользователя и проверяет 
+было ли заполнено поле основной фотографии (main_photo_id). Если поле оставлено пустым, 
+то устанавливается фотография (значение) по умолчанию (main_photo_id = 1). 
+Момент срабатывания триггера установлен как AFTER INSERT (после вставки нового значения):
+
+CREATE OR REPLACE FUNCTION create_new_user_trigger()
+RETURNS TRIGGER AS
+$$
+BEGIN
+   IF (SELECT main_photo_id FROM users WHERE id = NEW.id) IS NULL THEN
+   UPDATE users SET main_photo_id = 1 WHERE id = NEW.id;
+   END IF;
+   RETURN NEW;
+END
+$$
+LANGUAGE PLPGSQL;
+
+
+CREATE TRIGGER check_main_photo_on_insert AFTER INSERT ON users
+   FOR EACH ROW
+   EXECUTE FUNCTION create_new_user_trigger();
+
